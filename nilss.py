@@ -97,6 +97,14 @@ def renormalize(W, vstar):
     return Q, R, q, b
 
 
+def getLEs(Rs):
+    I = np.arange(Rs.shape[-1])
+    _ = np.log2(Rs[1:-1,I,I])
+    LEs = _.mean(axis=0) / nstep
+    LEs = 2**LEs
+    return LEs
+
+
 def nilss(nseg):
     # the overall nilss algorithm
     Cinvs = np.empty([nseg, nus, nus])
@@ -114,7 +122,8 @@ def nilss(nseg):
                 us[k], ws[k], vstars[k], Jus[k] \
                 = inner_products(u0, Q, q)
         Q, Rs[k+1], q, bs[k+1] = renormalize(Wend, vstarend)
+    LEs = getLEs(Rs)
     aa = nilss_k(Cinvs, dwvstars, Rs[1:-1], bs[1:-1])
     dJds = ((dwJus * aa).sum() + dvstarJus.sum()) / (nseg * nstep)
     v = vstars + (ws*aa[:,newaxis,newaxis,:]).sum(-1)
-    return Javg, dJds, us, v, (Jus*v).sum(-1)
+    return Javg, dJds, us, v, (Jus*v).sum(-1), LEs

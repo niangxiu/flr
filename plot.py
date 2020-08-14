@@ -72,11 +72,12 @@ def change_A():
 def all_info():
     # generate all info
     nseg = 10
-    Javg, grad, u, v, Juv = nilss(nseg)
+    Javg, grad, u, v, Juv, LEs = nilss(nseg)
     plt.hist(u.reshape(-1), 20)
     plt.savefig('thetas distribution')
     plt.close()
-    print(Javg, grad)
+    print('Javg, grad = ', Javg, grad)
+    print('Lyapunov exponenets = ', LEs)
     _, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(13,12))
     vn = v[:,:,0].reshape(-1)
     ax1.plot(np.arange(vn.shape[0]),vn)
@@ -88,7 +89,6 @@ def all_info():
     plt.tight_layout()
     plt.savefig('v norm.png')
     plt.close()
-    # set_trace()
 
 
 def trajectory():
@@ -106,6 +106,6 @@ if __name__ == '__main__': # pragma: no cover
     # change_A()
     all_info()
     # trajectory()
-    print('A, B=', foldmap.A)
+    print('A, B=', foldmap.A, foldmap.B)
     endtime = time.time()
     print('time elapsed in seconds:', endtime-starttime)
