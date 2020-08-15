@@ -7,10 +7,9 @@ import itertools
 from pdb import set_trace
 from scipy.linalg import block_diag
 from foldmap import *
-import foldmap
 
 
-def primal(u0, nstep=foldmap.nstep):
+def primal(u0):
     # ini_step is the total step number of u0
     # return quantities not related to fu: u, f, J, Ju
     u, Ju = np.zeros([2, nstep+1, nc])

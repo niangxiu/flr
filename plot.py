@@ -103,8 +103,8 @@ def trajectory():
 if __name__ == '__main__': # pragma: no cover
     starttime = time.time()
     # converge_T()
-    # change_A()
-    all_info()
+    change_A()
+    # all_info()
     # trajectory()
     print('A, B=', foldmap.A, foldmap.B)
     endtime = time.time()
