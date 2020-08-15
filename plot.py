@@ -12,8 +12,8 @@ import pickle
 import itertools
 from multiprocessing import Pool, current_process
 from pdb import set_trace
-from foldmap import *
-import foldmap
+from M3u2 import *
+import M3u2
 from nilss import nilss, primal
 
 
@@ -25,7 +25,8 @@ def wrapped_nilss(nseg, n_repeat):
         with Pool(processes=4) as pool:
             results = pool.starmap(nilss, arguments)
     Javg_, grad_, *_ = zip(*results)
-    [print(foldmap.A, Javg, grad) for Javg, grad in zip(Javg_, grad_)]
+    print('rho, Javg, grad')
+    [print(M3u2.rho, Javg, grad) for Javg, grad in zip(Javg_, grad_)]
     return np.array(Javg_), np.array(grad_)
 
 
@@ -57,24 +58,24 @@ def converge_T():
     plt.savefig('T_grad_std.png')
 
         
-def change_A():
+def change_rho():
     # grad for different rho
     n_repeat = 1
-    nseg = 100
-    As = np.linspace(0.2, 0.6, 5)
-    Javgs   = np.empty(As.shape[0])
-    grads   = np.empty(As.shape[0])
-    for i, A in enumerate(As):
-        foldmap.A = A
+    nseg = 10
+    rhos = np.linspace(-1.0, -1.5, 6)
+    Javgs   = np.empty(rhos.shape[0])
+    grads   = np.empty(rhos.shape[0])
+    for i, rho in enumerate(rhos):
+        M3u2.rho = rho
         Javgs[i], grads[i] = wrapped_nilss(nseg, n_repeat)
 
 
 def all_info():
     # generate all info
-    nseg = 10
+    nseg = 100
     Javg, grad, u, v, Juv, LEs = nilss(nseg)
-    plt.hist(u.reshape(-1), 20)
-    plt.savefig('thetas distribution')
+    plt.plot(u[:,:,0].reshape(-1), u[:,:,1].reshape(-1), '.', markersize=1)
+    plt.savefig('trajectory.png')
     plt.close()
     print('Javg, grad = ', Javg, grad)
     print('Lyapunov exponenets = ', LEs)
@@ -103,9 +104,9 @@ def trajectory():
 if __name__ == '__main__': # pragma: no cover
     starttime = time.time()
     # converge_T()
-    change_A()
-    # all_info()
+    # change_rho()
+    all_info()
     # trajectory()
-    print('A, B=', foldmap.A, foldmap.B)
+    print('rho=', M3u2.rho)
     endtime = time.time()
     print('time elapsed in seconds:', endtime-starttime)

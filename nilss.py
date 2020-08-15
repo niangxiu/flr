@@ -6,7 +6,7 @@ from numpy import newaxis
 import itertools
 from pdb import set_trace
 from scipy.linalg import block_diag
-from foldmap import *
+from M3u2 import *
 
 
 def primal(u0):
@@ -40,7 +40,7 @@ def preprocess():
     Jus = np.empty([nseg_ps, nstep+1, nc])
     Js = np.empty([nseg_ps, nstep+1]) # the array for J, not dJ/ds
     np.random.seed()
-    u0 = np.random.rand(2)
+    u0 = np.random.rand(nc)
     for i in range(nseg_ps):
         u, Js[i], Jus[i] = primal(u0)
         u0 = u[-1]
@@ -98,7 +98,7 @@ def renormalize(W, vstar):
 
 def getLEs(Rs):
     I = np.arange(Rs.shape[-1])
-    _ = np.log2(Rs[1:-1,I,I])
+    _ = np.log2(np.abs(Rs[1:-1,I,I]))
     LEs = _.mean(axis=0) / nstep
     LEs = 2**LEs
     return LEs
@@ -121,8 +121,10 @@ def nilss(nseg):
                 us[k], ws[k], vstars[k], Jus[k] \
                 = inner_products(u0, Q, q)
         Q, Rs[k+1], q, bs[k+1] = renormalize(Wend, vstarend)
+
     LEs = getLEs(Rs)
     aa = nilss_k(Cinvs, dwvstars, Rs[1:-1], bs[1:-1])
     dJds = ((dwJus * aa).sum() + dvstarJus.sum()) / (nseg * nstep)
     v = vstars + (ws*aa[:,newaxis,newaxis,:]).sum(-1)
+
     return Javg, dJds, us, v, (Jus*v).sum(-1), LEs
