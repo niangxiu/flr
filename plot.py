@@ -14,7 +14,7 @@ from multiprocessing import Pool, current_process
 from pdb import set_trace
 from M3u2 import *
 import M3u2
-from nilss import nilss, primal
+from lra import nilss, primal
 
 
 def wrapped_nilss(nseg, n_repeat): 

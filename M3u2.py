@@ -30,7 +30,7 @@ def fJJu(x):
 def fufs(x):
     r, t, z = x
     fu = np.array([ [0.05, -0.1*sin(t), 0],
-                    [0, 2+rho*cos(t), 0],
+                    [2*t, 2*r + rho*cos(t), 0],
                     [0, 0.1*cos(t), 0.05]])
     fs = np.array([0, sin(t), 0]) # parameter is rho
     return fu, fs
