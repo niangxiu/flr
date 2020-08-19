@@ -6,67 +6,85 @@ from numpy import newaxis
 import itertools
 from pdb import set_trace
 from scipy.linalg import block_diag
-from M3u2 import *
+from ds import *
 
 
-def primal(u0):
-    # ini_step is the total step number of u0
-    # return quantities not related to fu: u, f, J, Ju
-    u, Ju = np.zeros([2, nstep+1, nc])
-    J = np.zeros([nstep+1])
+def primal_raw(u0, n):
+    # return quantities not related to fu: u, J, Ju
+    u, Ju = np.zeros([2, n+1, nc])
+    J = np.zeros([n+1])
     u[0] = u0
-    for i in range(nstep):
+    for i in range(n):
         u[i+1], J[i], Ju[i] = fJJu(u[i])
-    _, J[nstep], Ju[nstep] = fJJu(u[nstep])
+    _, J[n], Ju[n] = fJJu(u[n])
     return u, J, Ju
 
 
-def tangent(u, w0, vstar0):
+def primal(u0, nseg):
+    # compute psi and reshape the raw results. Note that the returned u[0,0] is not u0.
+    u, Ju = np.empty([2, nseg, nstep+1, nc]) # only for debug 
+    psi = np.zeros([nseg, nstep+1])
+
+    u_, J_, Ju_ = primal_raw(u0, nseg*nstep + 2*W)
+    # u_, J_, Ju_ = primal_raw(u0, nseg*nstep + 1)
+    Javg = J_.mean()
+    J_ = J_ - Javg
+    for k in range(nseg):
+        u[k]= u_[k*nstep+W: k*nstep+W+nstep+1]
+        Ju[k]= Ju_[k*nstep+W: k*nstep+W+nstep+1]
+        for w in range(2*W+1):
+            psi[k] += J_[k*nstep+w: k*nstep+w+nstep+1]
+        # u[k]= u_[k*nstep+1: k*nstep+nstep+2]
+        # Ju[k]= Ju_[k*nstep+1: k*nstep+nstep+2]
+        # psi[k] = J_[k*nstep: k*nstep+nstep+1]
+    return u, Ju, psi, Javg
+
+
+def preprocess():
+    # return the initial condition 
+    np.random.seed()
+    u0 = np.random.rand(nc)
+    u, _, _ = primal_raw(u0, nseg_ps*nstep)
+    return u[-1]
+
+
+def tangent(u, w0, vstar0, psi, vtstar0):
     # return quantities related to fu: w, vstar
     w = np.empty([nstep+1, nc, nus])
-    vstar = np.empty([nstep+1, nc])
+    vstar, vtstar = np.empty([2, nstep+1, nc]) # vt is tilde v
     w[0] = w0
     vstar[0] = vstar0
+    vtstar[0] = vtstar0
     for i in range(nstep):
         fu, fs = fufs(u[i])
         w[i+1] = fu @ w[i]
         vstar[i+1] = fu @ vstar[i] + fs
-    return w, vstar
+        vtstar[i+1] = fu @ vtstar[i] + fs * psi[i]
+    return w, vstar, vtstar
 
 
-def preprocess():
-    # change alpha, betaJ, Javg, and maybe dJs(integration of Js, not in this case)
-    global Javg
-    Jus = np.empty([nseg_ps, nstep+1, nc])
-    Js = np.empty([nseg_ps, nstep+1]) # the array for J, not dJ/ds
-    np.random.seed()
-    u0 = np.random.rand(nc)
-    for i in range(nseg_ps):
-        u, Js[i], Jus[i] = primal(u0)
-        u0 = u[-1]
-    Javg = Js[nseg_dis:,:-1].mean()
-    return u0
-
-
-def inner_products(u0, w0, vstar0):
-    # return inner products on one segment, and xi's at the end of segments
-    # no need to return delta xi's, they are used only inside this function
-    u, J, Ju = primal(u0)
-    w, vstar = tangent(u, w0, vstar0)
+def inner_products(u, Ju, w0, vstar0, psi, vtstar0):
+    # return inner products on one segment
+    w, vstar, vtstar = tangent(u, w0, vstar0, psi, vtstar0)
     weight = np.ones(nstep+1)
     weight[0] = weight[-1] = 0.5
 
-    dwJu = (w * Ju[:,:,newaxis]).sum((0,1))
-    dvstarJu = (vstar * Ju).sum()
+    dwJu = (w * Ju[:,:,newaxis] * weight[:,newaxis,newaxis]).sum((0,1))
+    dvstarJu = (vstar * Ju * weight[:,newaxis]).sum()
+    dvtstarJu = (vtstar * Ju * weight[:,newaxis]).sum()
+    # dwJu = (w * Ju[:,:,newaxis]).sum((0,1))
+    # dvstarJu = (vstar * Ju).sum()
+    # dvtstarJu = (vtstar * Ju).sum()
     C = (w[:,:,:,newaxis] * w[:,:,newaxis,:] * weight[:,newaxis,newaxis,newaxis]).sum((0,1))
     Cinv = np.linalg.inv(C)
     dwvstar = (w* vstar[:,:,newaxis] * weight[:,newaxis,newaxis]).sum((0,1))
+    dwvtstar = (w* vtstar[:,:,newaxis] * weight[:,newaxis,newaxis]).sum((0,1))
 
-    return Cinv, dwvstar, dwJu, dvstarJu, u[-1], w[-1], vstar[-1], u, w, vstar, Ju
+    return Cinv, dwvstar, dwvtstar, dwJu, dvstarJu, dvtstarJu, w, vstar, vtstar
 
 
-def nilss_k(Cinvs, ds, Rs, bs):
-    # solve the nilss problem on k segments.
+def nilss(Cinvs, ds, Rs, bs):
+    # solve the nilss problem
     kk = Cinvs.shape[0]
     Cinv = block_diag(*Cinvs)
     d = np.ravel(ds) 
@@ -80,20 +98,22 @@ def nilss_k(Cinvs, ds, Rs, bs):
     return a
 
 
-def Q0q0(u0):
+def Q0q0():
     # generate initial conditions
     w0 = np.random.rand(nc, nus)
     Q0, _ = np.linalg.qr(w0, 'reduced')
     q0 = np.zeros(nc)
-    return Q0, q0
+    qt0 = np.zeros(nc)
+    return Q0, q0, qt0
 
 
-def renormalize(W, vstar):
-    # take W, vstar at the end of segment k
+def renormalize(W, vstar, vtstar):
     Q, R = np.linalg.qr(W, 'reduced')
     b = Q.T @ vstar
     q = vstar - Q @ b
-    return Q, R, q, b
+    bt = Q.T @ vtstar
+    qt = vtstar - Q @ bt
+    return Q, R, q, b, qt, bt
 
 
 def getLEs(Rs):
@@ -104,27 +124,54 @@ def getLEs(Rs):
     return LEs
 
 
-def nilss(nseg):
-    # the overall nilss algorithm
+def tan2nd(rini, u, psi, w, vt):
+    r = rini
+    for i in range(nstep):
+        fu, _ = fufs(u[i])
+        fuu, fsu = fuufsu(u[i])
+        rn = fu @ r + psi[i+1] * fsu @ w[i] + fuu @ vt[i] @ w[i]
+        r = rn
+    return r
+
+
+def lra(nseg):
+    # shadowing contribution and first order tangent
     Cinvs = np.empty([nseg, nus, nus])
-    dwvstars, dwJus, aa = np.empty([3, nseg, nus])
-    dvstarJus = np.empty([nseg])
+    dwvstars, dwvtstars, dwJus = np.empty([3, nseg, nus])
+    dvstarJus, dvtstarJus = np.empty([2, nseg])
     Rs = np.empty([nseg+1, nus, nus]) # R[0] is at t0, R[K] at T, but both not used
-    bs = np.empty([nseg+1, nus])
-    us, vstars, Jus = np.empty([3, nseg, nstep+1, nc]) # only for debug 
+    Q = np.empty([nseg+1, nc, nus]) 
+    bs, bts = np.empty([2, nseg+1, nus])
+    vstars, vtstars = np.empty([2, nseg, nstep+1, nc]) # only for debug 
     ws = np.empty([nseg, nstep+1, nc, nus]) # only for debug and illustration
 
     u0 = preprocess()
-    Q, q = Q0q0(u0)
+    u, Ju, psi, Javg = primal(u0, nseg) # notice that u0 is changed
+
+    Q[0], q, qt = Q0q0()
+    Rs[0] = np.eye(nus)
     for k in range(nseg):
-        Cinvs[k],dwvstars[k],dwJus[k], dvstarJus[k], u0, Wend, vstarend,\
-                us[k], ws[k], vstars[k], Jus[k] \
-                = inner_products(u0, Q, q)
-        Q, Rs[k+1], q, bs[k+1] = renormalize(Wend, vstarend)
+        Cinvs[k], dwvstars[k], dwvtstars[k], dwJus[k], dvstarJus[k], dvtstarJus[k],\
+                ws[k], vstars[k], vtstars[k]\
+                = inner_products(u[k], Ju[k], Q[k], q, psi[k], qt)
+        Q[k+1], Rs[k+1], q, bs[k+1], qt, bts[k+1] = renormalize(ws[k,-1], vstars[k,-1], vtstars[k,-1])
 
     LEs = getLEs(Rs)
-    aa = nilss_k(Cinvs, dwvstars, Rs[1:-1], bs[1:-1])
-    dJds = ((dwJus * aa).sum() + dvstarJus.sum()) / (nseg * nstep)
-    v = vstars + (ws*aa[:,newaxis,newaxis,:]).sum(-1)
+    aa = nilss(Cinvs, dwvstars, Rs[1:-1], bs[1:-1])
+    aat = nilss(Cinvs, dwvtstars, Rs[1:-1], bts[1:-1])
+    sc = ((dwJus * aa).sum() + dvstarJus.sum()) / (nseg * nstep) # shadowing contribution
+    v = vstars + (ws*aa[:,newaxis,newaxis,:]).sum(-1) 
+    vt = vtstars + (ws*aat[:,newaxis,newaxis,:]).sum(-1) 
 
-    return Javg, dJds, us, v, (Jus*v).sum(-1), LEs
+    # unstable contribution and second order tangent
+    rend = np.empty([nseg, nc, nus])
+    Rinv = np.linalg.inv(Rs)
+    ucs = np.empty([nseg])
+    rini = np.zeros([nc, nus])
+    for k in range (nseg):
+        rend[k] = tan2nd(rini, u[k], psi[k], ws[k], vt[k]) # run second order tangent solver
+        ucs[k] = (Rinv[k+1] @ Q[k+1].T @ rend[k]).trace() / nstep # the unstable contribution of k
+        rini = (rend[k] - Q[k+1] @ Q[k+1].T @ rend[k]) @ Rinv[k+1] # renormalization
+    uc = ucs.mean()
+
+    return Javg, sc, uc, u, v, (Ju*v).sum(-1), LEs, vt

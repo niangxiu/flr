@@ -12,22 +12,22 @@ import pickle
 import itertools
 from multiprocessing import Pool, current_process
 from pdb import set_trace
-from M3u2 import *
-import M3u2
-from lra import nilss, primal
+from ds import *
+import ds
+from lra import lra, primal
 
 
-def wrapped_nilss(nseg, n_repeat): 
+def wrapped_lra(nseg, n_repeat): 
     arguments = [(nseg,) for i in range(n_repeat)]
     if n_repeat == 1:
-        results = [nilss(*arguments[0])]
+        results = [lra(*arguments[0])]
     else:
         with Pool(processes=4) as pool:
-            results = pool.starmap(nilss, arguments)
-    Javg_, grad_, *_ = zip(*results)
-    print('rho, Javg, grad')
-    [print(M3u2.rho, Javg, grad) for Javg, grad in zip(Javg_, grad_)]
-    return np.array(Javg_), np.array(grad_)
+            results = pool.starmap(lra, arguments)
+    Javg_, sc_, uc_, *_ = zip(*results)
+    print('prm, Javg, sc, uc, grad')
+    [print(ds.prm, Javg, sc, uc, sc+uc) for Javg, sc, uc in zip(Javg_, sc_, uc_)]
+    return np.array(Javg_), np.array(sc_), np.array(uc_)
 
 
 def converge_T():
@@ -42,12 +42,12 @@ def converge_T():
         grads = np.empty((nsegs.shape[0], n_repeat))
         for i, nseg in enumerate(nsegs):
             print('\nK=',nseg)
-            Javgs[i], grads[i] = wrapped_nilss(nseg, n_repeat)
+            Javgs[i], grads[i] = wrapped_lra(nseg, n_repeat)
         pickle.dump((Javgs, grads, nsegs), open("change_T.p", "wb"))
     
     plt.semilogx(nsegs, grads, 'k.')
     plt.tight_layout()
-    plt.savefig('T_grad_rho.png')
+    plt.savefig('T_grad_prm.png')
     plt.close()
     x = np.array([nsegs[0], nsegs[-1]])
     plt.loglog(nsegs, np.std(grads, axis=1), 'k.')
@@ -58,26 +58,26 @@ def converge_T():
     plt.savefig('T_grad_std.png')
 
         
-def change_rho():
-    # grad for different rho
+def change_prm():
+    # grad for different prm
     n_repeat = 1
-    nseg = 10
-    rhos = np.linspace(-1.0, -1.5, 6)
-    Javgs   = np.empty(rhos.shape[0])
-    grads   = np.empty(rhos.shape[0])
-    for i, rho in enumerate(rhos):
-        M3u2.rho = rho
-        Javgs[i], grads[i] = wrapped_nilss(nseg, n_repeat)
+    nseg = 1000
+    prms = np.linspace(0.2, 0.3, 11)
+    Javgs, sc, uc   = np.empty([3,prms.shape[0]])
+    for i, prm in enumerate(prms):
+        ds.prm = prm
+        Javgs[i], sc[i], uc[i] = wrapped_lra(nseg, n_repeat)
 
 
 def all_info():
     # generate all info
-    nseg = 100
-    Javg, grad, u, v, Juv, LEs = nilss(nseg)
-    plt.plot(u[:,:,0].reshape(-1), u[:,:,1].reshape(-1), '.', markersize=1)
+    nseg = 1000
+    Javg, sc, uc, u, v, Juv, LEs, vt = lra(nseg)
+    # plt.plot(u[:,:,0].reshape(-1), u[:,:,1].reshape(-1), '.', markersize=1)
+    plt.hist(u[:,:,0].reshape(-1))
     plt.savefig('trajectory.png')
     plt.close()
-    print('Javg, grad = ', Javg, grad)
+    print('Javg, sc, uc, grad = ', Javg, sc, uc, sc+uc)
     print('Lyapunov exponenets = ', LEs)
     _, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(13,12))
     vn = v[:,:,0].reshape(-1)
@@ -87,6 +87,9 @@ def all_info():
     ax2.plot(np.arange(vn.shape[0]),Juv)
     ax2.set_title('Ju @ v')
     ax3.scatter(u[:,:,0], v[:,:,0])
+    vtn = vt[:,:,0].reshape(-1)
+    ax4.plot(np.arange(vtn.shape[0]),vtn)
+    ax4.set_title('vtilde norm')
     plt.tight_layout()
     plt.savefig('v norm.png')
     plt.close()
@@ -104,9 +107,9 @@ def trajectory():
 if __name__ == '__main__': # pragma: no cover
     starttime = time.time()
     # converge_T()
-    # change_rho()
+    # change_prm()
     all_info()
     # trajectory()
-    print('rho=', M3u2.rho)
+    print('prm=', ds.prm)
     endtime = time.time()
     print('time elapsed in seconds:', endtime-starttime)
