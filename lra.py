@@ -26,7 +26,7 @@ def primal(u0, nseg):
     psi = np.zeros([nseg, nstep+1])
 
     u_, J_, Ju_ = primal_raw(u0, nseg*nstep + 2*W)
-    # u_, J_, Ju_ = primal_raw(u0, nseg*nstep + 1)
+    # u_, J_, Ju_ = primal_raw(u0, nseg*nstep + 10)
     Javg = J_.mean()
     J_ = J_ - Javg
     for k in range(nseg):
@@ -34,9 +34,9 @@ def primal(u0, nseg):
         Ju[k]= Ju_[k*nstep+W: k*nstep+W+nstep+1]
         for w in range(2*W+1):
             psi[k] += J_[k*nstep+w: k*nstep+w+nstep+1]
-        # u[k]= u_[k*nstep+1: k*nstep+nstep+2]
-        # Ju[k]= Ju_[k*nstep+1: k*nstep+nstep+2]
-        # psi[k] = J_[k*nstep: k*nstep+nstep+1]
+        # u[k]= u_[k*nstep+2: k*nstep+nstep+3]
+        # Ju[k]= Ju_[k*nstep+2: k*nstep+nstep+3]
+        # psi[k] = J_[k*nstep+1: k*nstep+nstep+2]
     return u, Ju, psi, Javg
 
 
@@ -72,30 +72,12 @@ def inner_products(u, Ju, w0, vstar0, psi, vtstar0):
     dwJu = (w * Ju[:,:,newaxis] * weight[:,newaxis,newaxis]).sum((0,1))
     dvstarJu = (vstar * Ju * weight[:,newaxis]).sum()
     dvtstarJu = (vtstar * Ju * weight[:,newaxis]).sum()
-    # dwJu = (w * Ju[:,:,newaxis]).sum((0,1))
-    # dvstarJu = (vstar * Ju).sum()
-    # dvtstarJu = (vtstar * Ju).sum()
     C = (w[:,:,:,newaxis] * w[:,:,newaxis,:] * weight[:,newaxis,newaxis,newaxis]).sum((0,1))
     Cinv = np.linalg.inv(C)
     dwvstar = (w* vstar[:,:,newaxis] * weight[:,newaxis,newaxis]).sum((0,1))
     dwvtstar = (w* vtstar[:,:,newaxis] * weight[:,newaxis,newaxis]).sum((0,1))
 
     return Cinv, dwvstar, dwvtstar, dwJu, dvstarJu, dvtstarJu, w, vstar, vtstar
-
-
-def nilss(Cinvs, ds, Rs, bs):
-    # solve the nilss problem
-    kk = Cinvs.shape[0]
-    Cinv = block_diag(*Cinvs)
-    d = np.ravel(ds) 
-    B = np.eye((kk-1)*nus, kk*nus, k=nus)
-    B[:, :-nus] -= block_diag(*Rs)
-    b = np.ravel(bs)
-    
-    lbd = np.linalg.solve(-B @ Cinv @ B.T, B @ Cinv @ d + b)
-    a = -Cinv @ (B.T @ lbd + d)
-    a = a.reshape([kk, nus])
-    return a
 
 
 def Q0q0():
@@ -122,6 +104,21 @@ def getLEs(Rs):
     LEs = _.mean(axis=0) / nstep
     LEs = 2**LEs
     return LEs
+
+
+def nilss(Cinvs, ds, Rs, bs):
+    # solve the nilss problem
+    kk = Cinvs.shape[0]
+    Cinv = block_diag(*Cinvs)
+    d = np.ravel(ds) 
+    B = np.eye((kk-1)*nus, kk*nus, k=nus)
+    B[:, :-nus] -= block_diag(*Rs)
+    b = np.ravel(bs)
+    
+    lbd = np.linalg.solve(-B @ Cinv @ B.T, B @ Cinv @ d + b)
+    a = -Cinv @ (B.T @ lbd + d)
+    a = a.reshape([kk, nus])
+    return a
 
 
 def tan2nd(rini, u, psi, w, vt):
