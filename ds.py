@@ -14,8 +14,7 @@ nus = 2 # u in paper, number of homogeneous tangent solutions
 nc = 3 # M in papaer, dimension of phase space
 nseg_ps = 100
 nseg_dis = 20 # segments to discard, not even for Javg
-prm = 0.7 # the epsilon on Patrick's paper
-W = 15
+prm = 0.5 # the epsilon on Patrick's paper
 
 
 def fJJu(x):

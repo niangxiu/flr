@@ -20,7 +20,7 @@ def primal_raw(u0, n):
     return u, J, Ju
 
 
-def primal(u0, nseg):
+def primal(u0, nseg, W):
     # compute psi and reshape the raw results. Note that the returned u[0,0] is not u0.
     u, Ju = np.empty([2, nseg, nstep+1, nc]) # only for debug 
     psi = np.zeros([nseg, nstep+1])
@@ -131,7 +131,7 @@ def tan2nd(rini, u, psi, w, vt):
     return r
 
 
-def lra(nseg):
+def lra(nseg, W):
     # shadowing contribution and first order tangent
     Cinvs = np.empty([nseg, nus, nus])
     dwvstars, dwvtstars, dwJus = np.empty([3, nseg, nus])
@@ -143,7 +143,7 @@ def lra(nseg):
     ws = np.empty([nseg, nstep+1, nc, nus]) # only for debug and illustration
 
     u0 = preprocess()
-    u, Ju, psi, Javg = primal(u0, nseg) # notice that u0 is changed
+    u, Ju, psi, Javg = primal(u0, nseg, W) # notice that u0 is changed
 
     Q[0], q, qt = Q0q0()
     Rs[0] = np.eye(nus)
