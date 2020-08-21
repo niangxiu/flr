@@ -16,6 +16,12 @@ from ds import *
 import ds
 from lra import lra, primal
 
+plt.rc('axes', labelsize='x-large',  labelpad=12)
+plt.rc('xtick', labelsize='x-large')
+plt.rc('ytick', labelsize='x-large')
+plt.rc('legend', fontsize='x-large')
+plt.rc('font', family='sans-serif')
+
 
 def wrapped_lra(nseg, n_repeat): 
     arguments = [(nseg,) for i in range(n_repeat)]
@@ -26,7 +32,8 @@ def wrapped_lra(nseg, n_repeat):
             results = pool.starmap(lra, arguments)
     Javg_, sc_, uc_, *_ = zip(*results)
     print('prm, Javg, sc, uc, grad')
-    [print(ds.prm, Javg, sc, uc, sc+uc) for Javg, sc, uc in zip(Javg_, sc_, uc_)]
+    [print('{:.3e}, {:.3e}, {:.3e}, {:.3e}, {:.3e}'.format(ds.prm, Javg, sc, uc, sc-uc)) \
+            for Javg, sc, uc in zip(Javg_, sc_, uc_)]
     return np.array(Javg_), np.array(sc_), np.array(uc_)
 
 
@@ -62,22 +69,45 @@ def change_prm():
     # grad for different prm
     n_repeat = 1
     nseg = 1000
-    prms = np.linspace(0.2, 0.3, 11)
+    prms = np.linspace(0, 1, 41)
+    A = 0.05
     Javgs, sc, uc   = np.empty([3,prms.shape[0]])
-    for i, prm in enumerate(prms):
-        ds.prm = prm
-        Javgs[i], sc[i], uc[i] = wrapped_lra(nseg, n_repeat)
+    try:
+        prms, Javgs, grads  = pickle.load( open("data.p", "rb"))
+    except FileNotFoundError:
+        for i, prm in enumerate(prms):
+            ds.prm = prm
+            Javgs[i], sc[i], uc[i] = wrapped_lra(nseg, n_repeat)
+        grads = sc - uc
+        pickle.dump((prms, Javgs, grads), open("data.p", "wb"))
+    plt.plot(prms, Javgs, 'k.', markersize=6)
+    for prm, Javg, grad in zip(prms, Javgs, grads):
+        plt.plot([prm-A, prm+A], [Javg-grad*A, Javg+grad*A], color='grey', linestyle='-')
+    plt.ylabel('$\\rho(\Phi)$')
+    plt.xlabel('$\gamma$')
+    plt.tight_layout()
+    plt.savefig('prmobj.png')
 
 
 def all_info():
     # generate all info
     nseg = 1000
     Javg, sc, uc, u, v, Juv, LEs, vt = lra(nseg)
-    # plt.plot(u[:,:,0].reshape(-1), u[:,:,1].reshape(-1), '.', markersize=1)
+    # _, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8,8))
+    # ax1.plot(u[:,:,1].reshape(-1), u[:,:,0].reshape(-1), '.', markersize=1)
+    # plt.xlabel('x0')
+    # plt.ylabel('x1')
+    # ax2.plot(u[:,:,2].reshape(-1), u[:,:,0].reshape(-1), '.', markersize=1)
+    # plt.xlabel('x2')
+    # plt.ylabel('x1')
+    # ax3.plot(u[:,:,1].reshape(-1), u[:,:,2].reshape(-1), '.', markersize=1)
+    # plt.xlabel('x2')
+    # plt.ylabel('x1')
     plt.hist(u[:,:,0].reshape(-1))
+    plt.tight_layout()
     plt.savefig('trajectory.png')
     plt.close()
-    print('Javg, sc, uc, grad = ', Javg, sc, uc, sc+uc)
+    print('Javg, sc, uc, grad = ', '{:.3e}, {:.3e}, {:.3e}, {:.3e}'.format(Javg, sc, uc, sc-uc))
     print('Lyapunov exponenets = ', LEs)
     _, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(13,12))
     vn = v[:,:,0].reshape(-1)
@@ -107,8 +137,8 @@ def trajectory():
 if __name__ == '__main__': # pragma: no cover
     starttime = time.time()
     # converge_T()
-    # change_prm()
-    all_info()
+    change_prm()
+    # all_info()
     # trajectory()
     print('prm=', ds.prm)
     endtime = time.time()
