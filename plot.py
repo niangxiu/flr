@@ -16,11 +16,16 @@ from ds import *
 import ds
 from lra import lra, primal
 
-plt.rc('axes', labelsize='x-large',  labelpad=12)
-plt.rc('xtick', labelsize='x-large')
-plt.rc('ytick', labelsize='x-large')
-plt.rc('legend', fontsize='x-large')
+plt.rc('axes', labelsize='xx-large',  labelpad=12)
+plt.rc('xtick', labelsize='xx-large')
+plt.rc('ytick', labelsize='xx-large')
+plt.rc('legend', fontsize='xx-large')
 plt.rc('font', family='sans-serif')
+
+
+# default parameters 
+nseg = 1000
+W = 10
 
 
 def wrapped_lra(nseg, W, n_repeat): 
@@ -37,41 +42,43 @@ def wrapped_lra(nseg, W, n_repeat):
     return np.array(Javg_), np.array(sc_), np.array(uc_)
 
 
-def converge_T():
+def change_T():
     # convergence of gradient to different trajectory length
     try:
         Javgs, grads, nsegs = pickle.load( open("change_T.p", "rb"))
     except FileNotFoundError:
         n_repeat = 8
-        W = 15
-        nsegs = np.array([2, 5, 1e1, 2e1, 5e1, 1e2], dtype=int) 
-        Javgs = np.empty((nsegs.shape[0], n_repeat))
-        grads = np.empty((nsegs.shape[0], n_repeat))
+        nsegs = np.array([1e1, 2e1, 5e1, 1e2, 2e2, 5e2, 1e3], dtype=int) 
+        Javgs, sc, uc = np.empty([3, nsegs.shape[0], n_repeat])
         for i, nseg in enumerate(nsegs):
             print('\nK=',nseg)
-            Javgs[i], grads[i] = wrapped_lra(nseg, W, n_repeat)
+            Javgs[i], sc[i], uc[i] = wrapped_lra(nseg, W, n_repeat)
+        grads = sc-uc
         pickle.dump((Javgs, grads, nsegs), open("change_T.p", "wb"))
     
     plt.semilogx(nsegs, grads, 'k.')
+    plt.xlabel('$A$')
+    plt.ylabel('$\delta\\rho(\Phi)/\delta \gamma$')
     plt.tight_layout()
-    plt.savefig('T_grad_prm.png')
+    plt.savefig('A_grad.png')
     plt.close()
+
     x = np.array([nsegs[0], nsegs[-1]])
     plt.loglog(nsegs, np.std(grads, axis=1), 'k.')
     plt.loglog(x, x**-0.5, 'k--')
-    plt.xlabel('$T$')
-    plt.ylabel('std $\left( \, J_{avg} \, \\right)$')
+    plt.xlabel('$A$')
+    plt.ylabel('std $\delta\\rho(\Phi)/\delta \gamma$')
     plt.tight_layout()
-    plt.savefig('T_grad_std.png')
+    plt.savefig('A_std.png')
+    plt.close()
 
 
-def converge_W():
-    # convergence of gradient to different trajectory length
+def change_W():
+    # gradient to different W
+    n_repeat = 8
     try:
-        Javgs, grads, Ws = pickle.load( open("change_W.p", "rb"))
+        Javgs, sc, uc, grads, Ws = pickle.load( open("change_W.p", "rb"))
     except FileNotFoundError:
-        n_repeat = 8
-        nseg = 1000
         Ws = np.arange(10)
         Javgs, sc, uc = np.empty([3, Ws.shape[0], n_repeat])
         for i, W in enumerate(Ws):
@@ -79,58 +86,76 @@ def converge_W():
             ds.W = W
             Javgs[i], sc[i], uc[i] = wrapped_lra(nseg, W, n_repeat)
         grads = sc-uc
-        pickle.dump((Javgs, grads, Ws), open("change_W.p", "wb"))
-    
+        pickle.dump((Javgs, sc, uc, grads, Ws), open("change_W.p", "wb"))
     plt.plot(Ws, grads, 'k.')
+    plt.plot([-1]*n_repeat, sc[0], 'k.')
+    plt.ylabel('$\delta\\rho(\Phi)/\delta \gamma$')
+    plt.xlabel('$W$')
     plt.tight_layout()
-    plt.savefig('W_grad_prm.png')
+    plt.savefig('W_grad.png')
     plt.close()
-       
+
+
+def change_W_std():
+    # standard deviation to different W
+    n_repeat = 8
+    try:
+        Javgs, sc, uc, grads, Ws = pickle.load( open("change_W_std.p", "rb"))
+    except FileNotFoundError:
+        Ws = np.array([1e1, 2e1, 5e1, 1e2, 2e2, 5e2, 1e3, 2e3], dtype=int) 
+        Javgs, sc, uc = np.empty([3, Ws.shape[0], n_repeat])
+        for i, W in enumerate(Ws):
+            print('\nW =',W)
+            ds.W = W
+            Javgs[i], sc[i], uc[i] = wrapped_lra(nseg, W, n_repeat)
+        grads = sc-uc
+        pickle.dump((Javgs, sc, uc, grads, Ws), open("change_W_std.p", "wb"))
+
+    x = np.array([Ws[0], Ws[-1]])
+    plt.loglog(Ws, np.std(grads, axis=1), 'k.')
+    plt.loglog(x, 0.005*x**0.5, 'k--')
+    plt.xlabel('$W$')
+    plt.ylabel('std $\delta\\rho(\Phi)/\delta \gamma$')
+    plt.tight_layout()
+    plt.savefig('W_std.png')
+    plt.close()
+
 
 def change_prm():
     # grad for different prm
     n_repeat = 1 # must use 1, since prm in ds.py is fixed at the time the pool generates
-    nseg = 1000
-    W = 15
-    prms = np.linspace(0, 1, 41)
-    A = 0.05 # step size in the plot
+    prms = np.linspace(0, 0.1, 41)
+    A = 0.005 # step size in the plot
     Javgs, sc, uc   = np.empty([3,prms.shape[0]])
     try:
-        prms, Javgs, grads  = pickle.load( open("data.p", "rb"))
+        prms, Javgs, grads  = pickle.load( open("change_prm.p", "rb"))
     except FileNotFoundError:
         for i, prm in enumerate(prms):
             ds.prm = prm
             Javgs[i], sc[i], uc[i] = wrapped_lra(nseg, W, n_repeat)
         grads = sc - uc
-        pickle.dump((prms, Javgs, grads), open("data.p", "wb"))
+        pickle.dump((prms, Javgs, grads), open("change_prm.p", "wb"))
     plt.plot(prms, Javgs, 'k.', markersize=6)
     for prm, Javg, grad in zip(prms, Javgs, grads):
         plt.plot([prm-A, prm+A], [Javg-grad*A, Javg+grad*A], color='grey', linestyle='-')
     plt.ylabel('$\\rho(\Phi)$')
     plt.xlabel('$\gamma$')
     plt.tight_layout()
-    plt.savefig('prmobj.png')
+    plt.savefig('prm_obj.png')
+    plt.close()
 
 
 def all_info():
     # generate all info
-    nseg = 1000
-    W = 15
     Javg, sc, uc, u, v, Juv, LEs, vt = lra(nseg, W)
-    # _, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8,8))
-    # ax1.plot(u[:,:,1].reshape(-1), u[:,:,0].reshape(-1), '.', markersize=1)
-    # plt.xlabel('x0')
-    # plt.ylabel('x1')
-    # ax2.plot(u[:,:,2].reshape(-1), u[:,:,0].reshape(-1), '.', markersize=1)
-    # plt.xlabel('x2')
-    # plt.ylabel('x1')
-    # ax3.plot(u[:,:,1].reshape(-1), u[:,:,2].reshape(-1), '.', markersize=1)
-    # plt.xlabel('x2')
-    # plt.ylabel('x1')
-    plt.hist(u[:,:,0].reshape(-1))
-    plt.tight_layout()
-    plt.savefig('trajectory.png')
-    plt.close()
+    for i, j in [[1,0], [2,0], [1,2]]:
+        plt.figure(figsize=[4,6])
+        plt.plot(u[:,:,i].reshape(-1), u[:,:,j].reshape(-1), '.', markersize=1)
+        plt.xlabel('$x^{}$'.format(i+1))
+        plt.ylabel('$x^{}$'.format(j+1))
+        plt.tight_layout()
+        plt.savefig('x{}_x{}.png'.format(i+1, j+1))
+        plt.close()
     print('Javg, sc, uc, grad = ', '{:.3e}, {:.3e}, {:.3e}, {:.3e}'.format(Javg, sc, uc, sc-uc))
     print('Lyapunov exponenets = ', LEs)
     _, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(13,12))
@@ -160,10 +185,11 @@ def trajectory():
 
 if __name__ == '__main__': # pragma: no cover
     starttime = time.time()
-    # converge_T()
-    converge_W()
     # change_prm()
     # all_info()
+    change_W()
+    change_W_std()
+    # change_T()
     # trajectory()
     print('prm=', ds.prm)
     endtime = time.time()
