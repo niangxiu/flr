@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 import shutil
 import sys
 import os
@@ -14,7 +15,7 @@ from multiprocessing import Pool, current_process
 from pdb import set_trace
 from ds import *
 import ds
-from lra import lra, primal
+from lra import lra, primal_raw
 
 plt.rc('axes', labelsize='xx-large',  labelpad=12)
 plt.rc('xtick', labelsize='xx-large')
@@ -124,7 +125,7 @@ def change_W_std():
 def change_prm():
     # grad for different prm
     n_repeat = 1 # must use 1, since prm in ds.py is fixed at the time the pool generates
-    prms = np.linspace(0, 0.1, 41)
+    prms = np.linspace(0, 0.1, 11)
     A = 0.005 # step size in the plot
     Javgs, sc, uc   = np.empty([3,prms.shape[0]])
     try:
@@ -177,18 +178,22 @@ def all_info():
 def trajectory():
     np.random.seed()
     u0 = (np.random.rand() - 0.5) * 100
-    u, f, J, Ju = primal(u0, t0=0, nstep = 10000)
-    plt.plot(u[:,0].T, u[:,2].T,'k')
-    plt.savefig('trajectory.png')
+    u, J, Ju = primal_raw(u0, 100000)
+    u = u[1000:]
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    ax.plot3D(u[:,0], u[:,1], u[:,2], '.', markersize=1)
+    ax.view_init(70, 135)
+    plt.savefig('3dview.png')
     plt.close()
-    
+
 
 if __name__ == '__main__': # pragma: no cover
     starttime = time.time()
-    # change_prm()
+    change_prm()
     # all_info()
-    change_W()
-    change_W_std()
+    # change_W()
+    # change_W_std()
     # change_T()
     # trajectory()
     print('prm=', ds.prm)

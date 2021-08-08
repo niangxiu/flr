@@ -22,8 +22,10 @@ def fJJu(x):
     rn = 0.05*r + 0.1*cos(A*t) - 0.1*sin(5*p)
     tn = (t * 2 + prm * (1+r) * sin(A*t)) % (2*np.pi)
     pn = (p * 3 + prm * (1+r) * cos(2*p)) % (2*np.pi)
-    J = r
-    Ju = np.array([1, 0, 0])
+    # J = r
+    # Ju = np.array([1, 0, 0])
+    J = (t-np.pi)**2
+    Ju = np.array([0, (t-np.pi)*2, 0])
     return np.array([rn, tn, pn]), J, Ju
 
 
