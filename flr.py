@@ -131,7 +131,7 @@ def tan2nd(rini, u, psi, w, vt):
     return r
 
 
-def lra(nseg, W):
+def flr(nseg, W):
     # shadowing contribution and first order tangent
     Cinvs = np.empty([nseg, nus, nus])
     dwvstars, dwvtstars, dwJus = np.empty([3, nseg, nus])

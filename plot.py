@@ -15,7 +15,7 @@ from multiprocessing import Pool, current_process
 from pdb import set_trace
 from ds import *
 import ds
-from lra import lra, primal_raw
+from flr import flr, primal_raw
 
 plt.rc('axes', labelsize='xx-large',  labelpad=12)
 plt.rc('xtick', labelsize='xx-large')
@@ -29,13 +29,13 @@ nseg = 1000
 W = 10
 
 
-def wrapped_lra(nseg, W, n_repeat): 
+def wrapped_flr(nseg, W, n_repeat): 
     arguments = [(nseg, W,) for i in range(n_repeat)]
     if n_repeat == 1:
-        results = [lra(*arguments[0])]
+        results = [flr(*arguments[0])]
     else:
         with Pool(processes=4) as pool:
-            results = pool.starmap(lra, arguments)
+            results = pool.starmap(flr, arguments)
     Javg_, sc_, uc_, *_ = zip(*results)
     print('prm, Javg, sc, uc, grad')
     [print('{:.3e}, {:.3e}, {:.3e}, {:.3e}, {:.3e}'.format(ds.prm, Javg, sc, uc, sc-uc)) \
@@ -53,7 +53,7 @@ def change_T():
         Javgs, sc, uc = np.empty([3, nsegs.shape[0], n_repeat])
         for i, nseg in enumerate(nsegs):
             print('\nK=',nseg)
-            Javgs[i], sc[i], uc[i] = wrapped_lra(nseg, W, n_repeat)
+            Javgs[i], sc[i], uc[i] = wrapped_flr(nseg, W, n_repeat)
         grads = sc-uc
         pickle.dump((Javgs, grads, nsegs), open("change_T.p", "wb"))
     
@@ -85,7 +85,7 @@ def change_W():
         for i, W in enumerate(Ws):
             print('\nW =',W)
             ds.W = W
-            Javgs[i], sc[i], uc[i] = wrapped_lra(nseg, W, n_repeat)
+            Javgs[i], sc[i], uc[i] = wrapped_flr(nseg, W, n_repeat)
         grads = sc-uc
         pickle.dump((Javgs, sc, uc, grads, Ws), open("change_W.p", "wb"))
     plt.plot(Ws, grads, 'k.')
@@ -108,7 +108,7 @@ def change_W_std():
         for i, W in enumerate(Ws):
             print('\nW =',W)
             ds.W = W
-            Javgs[i], sc[i], uc[i] = wrapped_lra(nseg, W, n_repeat)
+            Javgs[i], sc[i], uc[i] = wrapped_flr(nseg, W, n_repeat)
         grads = sc-uc
         pickle.dump((Javgs, sc, uc, grads, Ws), open("change_W_std.p", "wb"))
 
@@ -133,7 +133,7 @@ def change_prm():
     except FileNotFoundError:
         for i, prm in enumerate(prms):
             ds.prm = prm
-            Javgs[i], sc[i], uc[i] = wrapped_lra(nseg, W, n_repeat)
+            Javgs[i], sc[i], uc[i] = wrapped_flr(nseg, W, n_repeat)
         grads = sc - uc
         pickle.dump((prms, Javgs, grads), open("change_prm.p", "wb"))
     plt.plot(prms, Javgs, 'k.', markersize=6)
@@ -148,7 +148,7 @@ def change_prm():
 
 def all_info():
     # generate all info
-    Javg, sc, uc, u, v, Juv, LEs, vt = lra(nseg, W)
+    Javg, sc, uc, u, v, Juv, LEs, vt = flr(nseg, W)
     for i, j in [[1,0], [2,0], [1,2]]:
         plt.figure(figsize=[4,6])
         plt.plot(u[:,:,i].reshape(-1), u[:,:,j].reshape(-1), '.', markersize=1)
@@ -190,8 +190,8 @@ def trajectory():
 
 if __name__ == '__main__': # pragma: no cover
     starttime = time.time()
-    change_prm()
-    # all_info()
+    # change_prm()
+    all_info()
     # change_W()
     # change_W_std()
     # change_T()
