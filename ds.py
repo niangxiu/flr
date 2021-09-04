@@ -1,5 +1,4 @@
-# the file for expressions of the dynamical system
-# the modified solonoid map
+# expressions of the dynamical system: modified solonoid map with M=11 and u=10
 from __future__ import division
 import numpy as np
 from numpy import newaxis, sin, cos
@@ -10,40 +9,49 @@ from pdb import set_trace
 
 
 nstep = 20 # step per segment
-nus = 2 # u in paper, number of homogeneous tangent solutions
-nc = 3 # M in papaer, dimension of phase space
-nseg_ps = 100
+nus = 10 # u in paper, number of homogeneous tangent solutions
+nc = 11 # M in papaer, dimension of phase space
+nseg_ps = 20
 nseg_dis = 20 # segments to discard, not even for Javg
 prm = 0.1 # the epsilon on Patrick's paper
-A = 8
+A = 5
+ii = list(range(1,nc))
+
 
 def fJJu(x):
-    r, t, p = x
-    rn = 0.05*r + 0.1*cos(A*t) - 0.1*sin(5*p)
-    tn = (t * 2 + prm * (1+r) * sin(A*t)) % (2*np.pi)
-    pn = (p * 3 + prm * (1+r) * cos(2*p)) % (2*np.pi)
-    # J = r
-    # Ju = np.array([1, 0, 0])
-    J = (t-np.pi)**2
-    Ju = np.array([0, (t-np.pi)*2, 0])
-    return np.array([rn, tn, pn]), J, Ju
+    xn = np.zeros(nc)
+    xn[0] = 0.05*x[0] + 0.1*cos(A*x[ii]).sum() + prm
+    xn[ii] = (3*x[ii] + prm*(1+x[0]) * sin(2*x[ii])) % (2*np.pi)
+
+    J = x[0]**3
+    # + (0.4 *sin(7*x[ii])**2).sum()
+    Ju = np.zeros(x.shape)
+    Ju[0] = 3*x[0]**2
+    # Ju[ii] = 0.4 * 2 * sin(7*x[ii]) * cos(7*x[ii]) * 7
+    return xn, J, Ju
 
 
 def fufs(x):
-    r, t, p = x
-    fu = np.array([ [0.05, -0.1*A*sin(A*t), -0.5*cos(5*p)],
-                    [prm*sin(A*t), 2 + prm*(1+r)*A*cos(A*t), 0],
-                    [prm*cos(2*p), 0, 3 - prm*(1+r)*2*sin(2*p)]])
-    fs = np.array([0, (1+r)*sin(A*t), (1+r)*cos(2*p)]) 
+    fu = np.zeros([nc,nc])
+    fu[0,0] = 0.05
+    fu[0,ii] = -0.1*A*sin(A*x[ii])
+    fu[ii,0] = prm * sin(2*x[ii])
+    fu[ii,ii] = 3 + prm*(1+x[0])*2*cos(2*x[ii])
+
+    fs = np.zeros(nc)
+    fs[0] = 1
+    fs[ii] = (1+x[0]) * sin(2*x[ii])
     return fu, fs
 
 
 def fuufsu(x):
-    r, t, p = x
-    fuu = np.array([[[0,0,0], [0,-0.1*A*A*cos(A*t),0], [0,0,2.5*sin(5*p)] ],
-                    [[0,prm*A*cos(A*t),0], [prm*A*cos(A*t),-prm*(1+r)*A*A*sin(A*t),0], [0,0,0] ],
-                    [[0,0,-2*prm*sin(2*p)], [0,0,0], [-prm*2*sin(2*p),0,-prm*(1+r)*4*cos(2*p)]]])
-    fsu = np.array([[0, 0, 0],
-                    [sin(A*t), (1+r)*A*cos(A*t), 0],
-                    [cos(2*p), 0, -(1+r)*2*sin(2*p)]])
+    fuu = np.zeros([nc,nc,nc])
+    fuu[0,ii,ii] = -0.1 * A**2 * cos(A*x[ii])
+    fuu[ii,0,ii] = 2 * prm * cos(2*x[ii])
+    fuu[ii,ii,0] = 2 * prm * cos(2*x[ii])
+    fuu[ii,ii,ii]= -prm * (1+x[0]) * 4 * sin(2*x[ii])
+
+    fsu = np.zeros([nc,nc])
+    fsu[ii,0] = sin(2*x[ii])
+    fsu[ii,ii] = (1+x[0]) * 2* cos(2*x[ii])
     return fuu, fsu

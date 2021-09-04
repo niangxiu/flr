@@ -1,4 +1,4 @@
-# this is the file for non-autonomous lorenz system with a periodic excitation.
+# for various plots, including calls to main functions
 from __future__ import division
 import numpy as np
 import matplotlib
@@ -25,16 +25,16 @@ plt.rc('font', family='sans-serif')
 
 
 # default parameters 
-nseg = 1000
+nseg = 100
 W = 10
 
 
 def wrapped_flr(nseg, W, n_repeat): 
     arguments = [(nseg, W,) for i in range(n_repeat)]
-    if n_repeat == 1:
+    if n_repeat == 1 :
         results = [flr(*arguments[0])]
     else:
-        with Pool(processes=4) as pool:
+        with Pool(processes=2) as pool:
             results = pool.starmap(flr, arguments)
     Javg_, sc_, uc_, *_ = zip(*results)
     print('prm, Javg, sc, uc, grad')
@@ -49,7 +49,8 @@ def change_T():
         Javgs, grads, nsegs = pickle.load( open("change_T.p", "rb"))
     except FileNotFoundError:
         n_repeat = 8
-        nsegs = np.array([1e1, 2e1, 5e1, 1e2, 2e2, 5e2, 1e3], dtype=int) 
+        # nsegs = np.array([1e1, 2e1, 5e1, 1e2, 2e2, 5e2, 1e3], dtype=int) 
+        nsegs = np.array([5, 1e1, 2e1, 5e1, 1e2, 2e2, 5e2, 1e3], dtype=int) 
         Javgs, sc, uc = np.empty([3, nsegs.shape[0], n_repeat])
         for i, nseg in enumerate(nsegs):
             print('\nK=',nseg)
@@ -103,7 +104,8 @@ def change_W_std():
     try:
         Javgs, sc, uc, grads, Ws = pickle.load( open("change_W_std.p", "rb"))
     except FileNotFoundError:
-        Ws = np.array([1e1, 2e1, 5e1, 1e2, 2e2, 5e2, 1e3, 2e3], dtype=int) 
+        # Ws = np.array([1e1, 2e1, 5e1, 1e2, 2e2, 5e2, 1e3, 2e3], dtype=int) 
+        Ws = np.array([1e1, 2e1, 5e1, 1e2, 2e2, 5e2], dtype=int) 
         Javgs, sc, uc = np.empty([3, Ws.shape[0], n_repeat])
         for i, W in enumerate(Ws):
             print('\nW =',W)
@@ -125,11 +127,11 @@ def change_W_std():
 def change_prm():
     # grad for different prm
     n_repeat = 1 # must use 1, since prm in ds.py is fixed at the time the pool generates
-    prms = np.linspace(0, 0.1, 11)
+    prms = np.linspace(0, 0.4, 41)
     A = 0.005 # step size in the plot
-    Javgs, sc, uc   = np.empty([3,prms.shape[0]])
+    Javgs, sc, uc = np.empty([3,prms.shape[0]])
     try:
-        prms, Javgs, grads  = pickle.load( open("change_prm.p", "rb"))
+        prms, Javgs, grads = pickle.load(open("change_prm.p", "rb"))
     except FileNotFoundError:
         for i, prm in enumerate(prms):
             ds.prm = prm
@@ -191,10 +193,10 @@ def trajectory():
 if __name__ == '__main__': # pragma: no cover
     starttime = time.time()
     # change_prm()
-    all_info()
+    # all_info()
     # change_W()
     # change_W_std()
-    # change_T()
+    change_T()
     # trajectory()
     print('prm=', ds.prm)
     endtime = time.time()
