@@ -106,18 +106,46 @@ def getLEs(Rs):
     return LEs
 
 
-def nilss(Cinvs, ds, Rs, bs):
+def nilss(Cinv, d, R, b):
     # solve the nilss problem
-    kk = Cinvs.shape[0]
-    Cinv = block_diag(*Cinvs)
-    d = np.ravel(ds) 
-    B = np.eye((kk-1)*nus, kk*nus, k=nus)
-    B[:, :-nus] -= block_diag(*Rs)
-    b = np.ravel(bs)
+    nseg, nus = d.shape
+    RT = np.swapaxes(R,1,2)
+    D = R[1:] @ Cinv[:-1]
+    E = D @ RT[1:] + Cinv[1:]
+    Einv = np.linalg.inv(E)
+
+    y, lbd, a = np.empty([3, nseg, nus])
+    for i in range(nseg-1):
+        y[i] = D[i] @ d[i] - Cinv[i+1] @ d[i+1] - b[i+1]
     
-    lbd = np.linalg.solve(-B @ Cinv @ B.T, B @ Cinv @ d + b)
-    a = -Cinv @ (B.T @ lbd + d)
-    a = a.reshape([kk, nus])
+    for i in range(1, nseg-1):
+        tp = D[i] @ Einv[i-1]
+        E[i] -= tp @ D[i].T
+        y[i] -= tp @ y[i-1]
+
+    lbd[nseg-1] = np.linalg.solve(E[nseg-2], y[nseg-2] )
+    for i in range(nseg-2, 0, -1):
+        lbd[i] = np.linalg.solve(E[i-1], y[i-1] - D[i].T @ y[i])
+
+    a[0] = D[0].T @ lbd[1] - Cinv[0] @ d[0]
+    for i in range(1, nseg-1):
+        a[i] = D[i].T @ lbd[i+1] - Cinv[i] @ (lbd[i] + d[i])
+    a[nseg-1] = - Cinv[nseg-1] @ (lbd[nseg-1] + d[nseg-1])
+
+    # compare
+    kk = Cinv.shape[0]
+    Cinv = block_diag(*Cinv)
+    d = np.ravel(d) 
+    B = np.eye((kk-1)*nus, kk*nus, k=nus)
+    B[:, :-nus] -= block_diag(*R[1:])
+    b = np.ravel(b[1:])
+    
+    lbdd = np.linalg.solve(-B @ Cinv @ B.T, B @ Cinv @ d + b)
+    aa = -Cinv @ (B.T @ lbdd + d)
+    aa = aa.reshape([kk, nus])
+    temp1 = a - aa
+    temp2 = np.ravel(lbd[1:]) - lbdd
+    set_trace()
     return a
 
 
@@ -154,8 +182,8 @@ def flr(nseg, W):
         Q[k+1], Rs[k+1], q, bs[k+1], qt, bts[k+1] = renormalize(ws[k,-1], vstars[k,-1], vtstars[k,-1])
 
     LEs = getLEs(Rs)
-    aa = nilss(Cinvs, dwvstars, Rs[1:-1], bs[1:-1])
-    aat = nilss(Cinvs, dwvtstars, Rs[1:-1], bts[1:-1])
+    aa = nilss(Cinvs, dwvstars, Rs[:-1], bs[:-1])
+    aat = nilss(Cinvs, dwvtstars, Rs[:-1], bts[:-1])
     sc = ((dwJus * aa).sum() + dvstarJus.sum()) / (nseg * nstep) # shadowing contribution
     v = vstars + (ws*aa[:,newaxis,newaxis,:]).sum(-1) 
     vt = vtstars + (ws*aat[:,newaxis,newaxis,:]).sum(-1) 

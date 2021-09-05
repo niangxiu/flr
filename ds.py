@@ -9,10 +9,10 @@ from pdb import set_trace
 
 
 nstep = 20 # step per segment
-nus = 10 # u in paper, number of homogeneous tangent solutions
-nc = 11 # M in papaer, dimension of phase space
-nseg_ps = 20
-nseg_dis = 20 # segments to discard, not even for Javg
+nus = 20 # u in paper, number of homogeneous tangent solutions
+nc = 21 # M in papaer, dimension of phase space
+nseg_ps = 100
+nseg_dis = 100 # segments to discard, not even for Javg
 prm = 0.1 # the epsilon on Patrick's paper
 A = 5
 ii = list(range(1,nc))
@@ -21,13 +21,12 @@ ii = list(range(1,nc))
 def fJJu(x):
     xn = np.zeros(nc)
     xn[0] = 0.05*x[0] + 0.1*cos(A*x[ii]).sum() + prm
-    xn[ii] = (3*x[ii] + prm*(1+x[0]) * sin(2*x[ii])) % (2*np.pi)
+    xn[ii] = (2*x[ii] + prm*(1+x[0]) * sin(2*x[ii])) % (2*np.pi)
 
-    J = x[0]**3
-    # + (0.4 *sin(7*x[ii])**2).sum()
+    J = x[0]**3 - 0.005 * ((x[ii] - np.pi)**2).sum()
     Ju = np.zeros(x.shape)
     Ju[0] = 3*x[0]**2
-    # Ju[ii] = 0.4 * 2 * sin(7*x[ii]) * cos(7*x[ii]) * 7
+    Ju[ii] = - 0.005 * 2 * (x[ii] - np.pi)
     return xn, J, Ju
 
 
@@ -36,7 +35,7 @@ def fufs(x):
     fu[0,0] = 0.05
     fu[0,ii] = -0.1*A*sin(A*x[ii])
     fu[ii,0] = prm * sin(2*x[ii])
-    fu[ii,ii] = 3 + prm*(1+x[0])*2*cos(2*x[ii])
+    fu[ii,ii] = 2 + prm*(1+x[0])*2*cos(2*x[ii])
 
     fs = np.zeros(nc)
     fs[0] = 1

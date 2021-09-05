@@ -27,18 +27,22 @@ plt.rc('font', family='sans-serif')
 # default parameters 
 nseg = 100
 W = 10
+n_repeat = 10
+ncpu = 2
+prm = 0.1
 
 
-def wrapped_flr(nseg, W, n_repeat): 
+def wrapped_flr(prm, nseg, W, n_repeat): 
+    ds.prm = prm
     arguments = [(nseg, W,) for i in range(n_repeat)]
     if n_repeat == 1 :
         results = [flr(*arguments[0])]
     else:
-        with Pool(processes=2) as pool:
+        with Pool(processes=ncpu) as pool:
             results = pool.starmap(flr, arguments)
     Javg_, sc_, uc_, *_ = zip(*results)
-    print('prm, Javg, sc, uc, grad')
-    [print('{:.3e}, {:.3e}, {:.3e}, {:.3e}, {:.3e}'.format(ds.prm, Javg, sc, uc, sc-uc)) \
+    print('prm, nseg, W, Javg, sc, uc, grad')
+    [print('{:.2e}, {:d}, {:d}, {:.2e}, {:.2e}, {:.2e}, {:.3e}'.format(ds.prm, nseg, W, Javg, sc, uc, sc-uc)) \
             for Javg, sc, uc in zip(Javg_, sc_, uc_)]
     return np.array(Javg_), np.array(sc_), np.array(uc_)
 
@@ -48,13 +52,12 @@ def change_T():
     try:
         Javgs, grads, nsegs = pickle.load( open("change_T.p", "rb"))
     except FileNotFoundError:
-        n_repeat = 8
         # nsegs = np.array([1e1, 2e1, 5e1, 1e2, 2e2, 5e2, 1e3], dtype=int) 
-        nsegs = np.array([5, 1e1, 2e1, 5e1, 1e2, 2e2, 5e2, 1e3], dtype=int) 
+        nsegs = np.array([5, 1e1, 2e1, 5e1, 1e2, 2e2], dtype=int) 
         Javgs, sc, uc = np.empty([3, nsegs.shape[0], n_repeat])
         for i, nseg in enumerate(nsegs):
             print('\nK=',nseg)
-            Javgs[i], sc[i], uc[i] = wrapped_flr(nseg, W, n_repeat)
+            Javgs[i], sc[i], uc[i] = wrapped_flr(prm, nseg, W, n_repeat)
         grads = sc-uc
         pickle.dump((Javgs, grads, nsegs), open("change_T.p", "wb"))
     
@@ -77,7 +80,6 @@ def change_T():
 
 def change_W():
     # gradient to different W
-    n_repeat = 8
     try:
         Javgs, sc, uc, grads, Ws = pickle.load( open("change_W.p", "rb"))
     except FileNotFoundError:
@@ -85,8 +87,7 @@ def change_W():
         Javgs, sc, uc = np.empty([3, Ws.shape[0], n_repeat])
         for i, W in enumerate(Ws):
             print('\nW =',W)
-            ds.W = W
-            Javgs[i], sc[i], uc[i] = wrapped_flr(nseg, W, n_repeat)
+            Javgs[i], sc[i], uc[i] = wrapped_flr(prm, nseg, W, n_repeat)
         grads = sc-uc
         pickle.dump((Javgs, sc, uc, grads, Ws), open("change_W.p", "wb"))
     plt.plot(Ws, grads, 'k.')
@@ -100,7 +101,6 @@ def change_W():
 
 def change_W_std():
     # standard deviation to different W
-    n_repeat = 8
     try:
         Javgs, sc, uc, grads, Ws = pickle.load( open("change_W_std.p", "rb"))
     except FileNotFoundError:
@@ -109,8 +109,7 @@ def change_W_std():
         Javgs, sc, uc = np.empty([3, Ws.shape[0], n_repeat])
         for i, W in enumerate(Ws):
             print('\nW =',W)
-            ds.W = W
-            Javgs[i], sc[i], uc[i] = wrapped_flr(nseg, W, n_repeat)
+            Javgs[i], sc[i], uc[i] = wrapped_flr(prm, nseg, W, n_repeat)
         grads = sc-uc
         pickle.dump((Javgs, sc, uc, grads, Ws), open("change_W_std.p", "wb"))
 
@@ -127,15 +126,15 @@ def change_W_std():
 def change_prm():
     # grad for different prm
     n_repeat = 1 # must use 1, since prm in ds.py is fixed at the time the pool generates
-    prms = np.linspace(0, 0.4, 41)
-    A = 0.005 # step size in the plot
+    prms = np.linspace(0, 0.4, 11)
+    A = 0.015 # step size in the plot
     Javgs, sc, uc = np.empty([3,prms.shape[0]])
     try:
         prms, Javgs, grads = pickle.load(open("change_prm.p", "rb"))
     except FileNotFoundError:
         for i, prm in enumerate(prms):
             ds.prm = prm
-            Javgs[i], sc[i], uc[i] = wrapped_flr(nseg, W, n_repeat)
+            Javgs[i], sc[i], uc[i] = wrapped_flr(prm, nseg, W, n_repeat)
         grads = sc - uc
         pickle.dump((prms, Javgs, grads), open("change_prm.p", "wb"))
     plt.plot(prms, Javgs, 'k.', markersize=6)
@@ -193,10 +192,10 @@ def trajectory():
 if __name__ == '__main__': # pragma: no cover
     starttime = time.time()
     # change_prm()
-    # all_info()
     # change_W()
     # change_W_std()
-    change_T()
+    # change_T()
+    all_info()
     # trajectory()
     print('prm=', ds.prm)
     endtime = time.time()
