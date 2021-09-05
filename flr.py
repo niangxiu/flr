@@ -132,20 +132,6 @@ def nilss(Cinv, d, R, b):
         a[i] = D[i].T @ lbd[i+1] - Cinv[i] @ (lbd[i] + d[i])
     a[nseg-1] = - Cinv[nseg-1] @ (lbd[nseg-1] + d[nseg-1])
 
-    # compare
-    kk = Cinv.shape[0]
-    Cinv = block_diag(*Cinv)
-    d = np.ravel(d) 
-    B = np.eye((kk-1)*nus, kk*nus, k=nus)
-    B[:, :-nus] -= block_diag(*R[1:])
-    b = np.ravel(b[1:])
-    
-    lbdd = np.linalg.solve(-B @ Cinv @ B.T, B @ Cinv @ d + b)
-    aa = -Cinv @ (B.T @ lbdd + d)
-    aa = aa.reshape([kk, nus])
-    temp1 = a - aa
-    temp2 = np.ravel(lbd[1:]) - lbdd
-    set_trace()
     return a
 
 
