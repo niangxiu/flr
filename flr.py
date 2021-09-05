@@ -131,7 +131,6 @@ def nilss(Cinv, d, R, b):
     for i in range(1, nseg-1):
         a[i] = D[i].T @ lbd[i+1] - Cinv[i] @ (lbd[i] + d[i])
     a[nseg-1] = - Cinv[nseg-1] @ (lbd[nseg-1] + d[nseg-1])
-
     return a
 
 

@@ -52,7 +52,6 @@ def change_T():
     try:
         Javgs, grads, nsegs = pickle.load( open("change_T.p", "rb"))
     except FileNotFoundError:
-        # nsegs = np.array([1e1, 2e1, 5e1, 1e2, 2e2, 5e2, 1e3], dtype=int) 
         nsegs = np.array([5, 1e1, 2e1, 5e1, 1e2, 2e2], dtype=int) 
         Javgs, sc, uc = np.empty([3, nsegs.shape[0], n_repeat])
         for i, nseg in enumerate(nsegs):
@@ -126,7 +125,7 @@ def change_W_std():
 def change_prm():
     # grad for different prm
     n_repeat = 1 # must use 1, since prm in ds.py is fixed at the time the pool generates
-    prms = np.linspace(0, 0.4, 11)
+    prms = np.linspace(0, 0.3, 31)
     A = 0.015 # step size in the plot
     Javgs, sc, uc = np.empty([3,prms.shape[0]])
     try:

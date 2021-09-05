@@ -23,10 +23,10 @@ def fJJu(x):
     xn[0] = 0.05*x[0] + 0.1*cos(A*x[ii]).sum() + prm
     xn[ii] = (2*x[ii] + prm*(1+x[0]) * sin(2*x[ii])) % (2*np.pi)
 
-    J = x[0]**3 - 0.005 * ((x[ii] - np.pi)**2).sum()
+    J = x[0]**3 - 0.001 * ((x[ii] - np.pi)**2).sum()
     Ju = np.zeros(x.shape)
     Ju[0] = 3*x[0]**2
-    Ju[ii] = - 0.005 * 2 * (x[ii] - np.pi)
+    Ju[ii] = - 0.001 * 2 * (x[ii] - np.pi)
     return xn, J, Ju
 
 
