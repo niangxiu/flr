@@ -25,11 +25,11 @@ plt.rc('font', family='sans-serif')
 
 
 # default parameters 
-nseg = 100
+nseg = 2
 W = 10
 n_repeat = 10
 ncpu = 2
-prm = 0.1
+# prm = 0.1
 
 
 def wrapped_flr(prm, nseg, W, n_repeat): 
@@ -148,7 +148,7 @@ def change_prm():
 def all_info():
     # generate all info
     starttime = time.time()
-    Javg, sc, uc, u, v, Juv, LEs, vt = flr(3000, W)
+    Javg, sc, uc, u, v, Juv, LEs, vt = flr(5, W)
     endtime = time.time()
     print('time for flr:', endtime-starttime)
     for i, j in [[1,0], [1,2]]:
@@ -194,7 +194,7 @@ def trajectory():
 
 if __name__ == '__main__': # pragma: no cover
     starttime = time.time()
-    change_prm()
+    # change_prm()
     # change_W()
     # change_W_std()
     # change_T()

@@ -22,7 +22,7 @@ def primal_raw(u0, n):
 
 def primal(u0, nseg, W):
     # compute psi and reshape the raw results. Note that the returned u[0,0] is not u0.
-    u, Ju = np.empty([2, nseg, nstep+1, nc]) # only for debug 
+    u, Ju = np.nan * np.empty([2, nseg, nstep+1, nc]) # only for debug 
     psi = np.zeros([nseg, nstep+1])
 
     u_, J_, Ju_ = primal_raw(u0, nseg*nstep + 2*W)
@@ -50,8 +50,8 @@ def preprocess():
 
 def tangent(u, w0, vstar0, psi, vtstar0):
     # return quantities related to fu: w, vstar
-    w = np.empty([nstep+1, nc, nus])
-    vstar, vtstar = np.empty([2, nstep+1, nc]) # vt is tilde v
+    w = np.nan * np.empty([nstep+1, nc, nus])
+    vstar, vtstar = np.nan * np.empty([2, nstep+1, nc]) # vt is tilde v
     w[0] = w0
     vstar[0] = vstar0
     vtstar[0] = vtstar0
@@ -109,28 +109,47 @@ def getLEs(Rs):
 def nilss(Cinv, d, R, b):
     # solve the nilss problem
     nseg, nus = d.shape
+    D, E, Einv = np.nan * np.empty([3,nseg,nus,nus])
     RT = np.swapaxes(R,1,2)
-    D = R[1:] @ Cinv[:-1]
-    E = D @ RT[1:] + Cinv[1:]
-    Einv = np.linalg.inv(E)
 
-    y, lbd, a = np.empty([3, nseg, nus])
     for i in range(nseg-1):
-        y[i] = D[i] @ d[i] - Cinv[i+1] @ d[i+1] - b[i+1]
-    
-    for i in range(1, nseg-1):
-        tp = D[i] @ Einv[i-1]
-        E[i] -= tp @ D[i].T
-        y[i] -= tp @ y[i-1]
+        D[i] = R[i+1] @ Cinv[i]
 
-    lbd[nseg-1] = np.linalg.solve(E[nseg-2], y[nseg-2] )
+    for i in range(1, nseg):
+        E[i] = D[i-1] @ RT[i] + Cinv[i]
+
+    y, lbd, a = np.nan * np.empty([3, nseg, nus])
+    for i in range(1, nseg):
+        y[i] = D[i-1] @ d[i-1] - Cinv[i] @ d[i] - b[i]
+
+    for i in range(2, nseg):
+        tp = np.linalg.solve(E[i-1].T, D[i-1].T).T # use the new E! do not use Einv!!!
+        E[i] -= tp @ D[i-1].T
+        y[i] += tp @ y[i-1]
+
+    lbd[nseg-1] = np.linalg.solve(E[nseg-1], y[nseg-1]) 
     for i in range(nseg-2, 0, -1):
-        lbd[i] = np.linalg.solve(E[i-1], y[i-1] - D[i].T @ y[i])
+        lbd[i] = np.linalg.solve(E[i], (D[i].T @ lbd[i+1] + y[i]))
 
     a[0] = D[0].T @ lbd[1] - Cinv[0] @ d[0]
     for i in range(1, nseg-1):
         a[i] = D[i].T @ lbd[i+1] - Cinv[i] @ (lbd[i] + d[i])
     a[nseg-1] = - Cinv[nseg-1] @ (lbd[nseg-1] + d[nseg-1])
+
+    # compare
+    kk = Cinv.shape[0]
+    Cinv = block_diag(*Cinv)
+    d = np.ravel(d) 
+    B = np.eye((kk-1)*nus, kk*nus, k=nus)
+    B[:, :-nus] -= block_diag(*R[1:])
+    b = np.ravel(b[1:])
+    
+    lbdd = np.linalg.solve(-B @ Cinv @ B.T, B @ Cinv @ d + b)
+    aa = -Cinv @ (B.T @ lbdd + d)
+    aa = aa.reshape([kk, nus])
+    temp1 = a - aa
+    temp2 = np.ravel(lbd[1:]) - lbdd
+    set_trace()
     return a
 
 
@@ -146,14 +165,14 @@ def tan2nd(rini, u, psi, w, vt):
 
 def flr(nseg, W):
     # shadowing contribution and first order tangent
-    Cinvs = np.empty([nseg, nus, nus])
-    dwvstars, dwvtstars, dwJus = np.empty([3, nseg, nus])
-    dvstarJus, dvtstarJus = np.empty([2, nseg])
-    Rs = np.empty([nseg+1, nus, nus]) # R[0] is at t0, R[K] at T, but both not used
-    Q = np.empty([nseg+1, nc, nus]) 
-    bs, bts = np.empty([2, nseg+1, nus])
-    vstars, vtstars = np.empty([2, nseg, nstep+1, nc]) # only for debug 
-    ws = np.empty([nseg, nstep+1, nc, nus]) # only for debug and illustration
+    Cinvs = np.nan * np.empty([nseg, nus, nus])
+    dwvstars, dwvtstars, dwJus = np.nan * np.empty([3, nseg, nus])
+    dvstarJus, dvtstarJus = np.nan * np.empty([2, nseg])
+    Rs = np.nan * np.empty([nseg+1, nus, nus]) # R[0] is at t0, R[K] at T, but both not used
+    Q = np.nan * np.empty([nseg+1, nc, nus]) 
+    bs, bts = np.nan * np.empty([2, nseg+1, nus])
+    vstars, vtstars = np.nan * np.empty([2, nseg, nstep+1, nc]) # only for debug 
+    ws = np.nan * np.empty([nseg, nstep+1, nc, nus]) # only for debug and illustration
 
     u0 = preprocess()
     u, Ju, psi, Javg = primal(u0, nseg, W) # notice that u0 is changed
@@ -174,9 +193,9 @@ def flr(nseg, W):
     vt = vtstars + (ws*aat[:,newaxis,newaxis,:]).sum(-1) 
 
     # unstable contribution and second order tangent
-    rend = np.empty([nseg, nc, nus])
+    rend = np.nan * np.empty([nseg, nc, nus])
     Rinv = np.linalg.inv(Rs)
-    ucs = np.empty([nseg])
+    ucs = np.nan * np.empty([nseg])
     rini = np.zeros([nc, nus])
     for k in range (nseg):
         rend[k] = tan2nd(rini, u[k], psi[k], ws[k], vt[k]) # run second order tangent solver
