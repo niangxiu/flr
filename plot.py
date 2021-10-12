@@ -15,7 +15,7 @@ from multiprocessing import Pool, current_process
 from pdb import set_trace
 from ds import *
 import ds
-from flr import flr, primal_raw
+from flr import flr, primal_raw, preprocess
 
 plt.rc('axes', labelsize='xx-large',  labelpad=12)
 plt.rc('xtick', labelsize='xx-large')
@@ -103,7 +103,6 @@ def change_W_std():
     try:
         Javgs, sc, uc, grads, Ws = pickle.load( open("change_W_std.p", "rb"))
     except FileNotFoundError:
-        # Ws = np.array([1e1, 2e1, 5e1, 1e2, 2e2, 5e2, 1e3, 2e3], dtype=int) 
         Ws = np.array([1e1, 2e1, 5e1, 1e2, 2e2, 5e2], dtype=int) 
         Javgs, sc, uc = np.empty([3, Ws.shape[0], n_repeat])
         for i, W in enumerate(Ws):
@@ -125,7 +124,7 @@ def change_W_std():
 def change_prm():
     # grad for different prm
     n_repeat = 1 # must use 1, since prm in ds.py is fixed at the time the pool generates
-    prms = np.linspace(0, 0.3, 31)
+    prms = np.linspace(-0.3, 0.5, 21)
     A = 0.015 # step size in the plot
     Javgs, sc, uc = np.empty([3,prms.shape[0]])
     try:
@@ -148,9 +147,12 @@ def change_prm():
 
 def all_info():
     # generate all info
-    Javg, sc, uc, u, v, Juv, LEs, vt = flr(nseg, W)
-    for i, j in [[1,0], [2,0], [1,2]]:
-        plt.figure(figsize=[4,6])
+    starttime = time.time()
+    Javg, sc, uc, u, v, Juv, LEs, vt = flr(3000, W)
+    endtime = time.time()
+    print('time for flr:', endtime-starttime)
+    for i, j in [[1,0], [1,2]]:
+        plt.figure(figsize=[6,6])
         plt.plot(u[:,:,i].reshape(-1), u[:,:,j].reshape(-1), '.', markersize=1)
         plt.xlabel('$x^{}$'.format(i+1))
         plt.ylabel('$x^{}$'.format(j+1))
@@ -177,8 +179,10 @@ def all_info():
 
 def trajectory():
     np.random.seed()
-    u0 = (np.random.rand() - 0.5) * 100
-    u, J, Ju = primal_raw(u0, 100000)
+    starttime = time.time()
+    u, J, Ju = primal_raw(preprocess(), 20*1000)
+    endtime = time.time()
+    print('time for compute trajectory:', endtime-starttime)
     u = u[1000:]
     fig = plt.figure()
     ax = plt.axes(projection='3d')
@@ -190,12 +194,12 @@ def trajectory():
 
 if __name__ == '__main__': # pragma: no cover
     starttime = time.time()
-    # change_prm()
+    change_prm()
     # change_W()
     # change_W_std()
     # change_T()
-    all_info()
     # trajectory()
+    all_info()
     print('prm=', ds.prm)
     endtime = time.time()
     print('time elapsed in seconds:', endtime-starttime)
