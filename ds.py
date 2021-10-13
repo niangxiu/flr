@@ -8,12 +8,12 @@ import itertools
 from pdb import set_trace
 
 
-nstep = 2 # step per segment
-nus = 2 # u in paper, number of homogeneous tangent solutions
-nc = 3 # M in papaer, dimension of phase space
+nstep = 20 # step per segment
+nus = 4 # u in paper, number of homogeneous tangent solutions
+nc = 5 # M in papaer, dimension of phase space
 nseg_ps = 100
 nseg_dis = 100 # segments to discard, not even for Javg
-prm = 0.2 # the epsilon on Patrick's paper
+prm = 0.1 # the epsilon on Patrick's paper
 A = 5
 ii = list(range(1,nc))
 

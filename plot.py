@@ -25,11 +25,10 @@ plt.rc('font', family='sans-serif')
 
 
 # default parameters 
-nseg = 2
+nseg = 200
 W = 10
 n_repeat = 10
 ncpu = 2
-# prm = 0.1
 
 
 def wrapped_flr(prm, nseg, W, n_repeat): 
@@ -124,7 +123,7 @@ def change_W_std():
 def change_prm():
     # grad for different prm
     n_repeat = 1 # must use 1, since prm in ds.py is fixed at the time the pool generates
-    prms = np.linspace(-0.3, 0.5, 21)
+    prms = np.linspace(-0.3, 0.4, 15)
     A = 0.015 # step size in the plot
     Javgs, sc, uc = np.empty([3,prms.shape[0]])
     try:
@@ -194,12 +193,12 @@ def trajectory():
 
 if __name__ == '__main__': # pragma: no cover
     starttime = time.time()
-    # change_prm()
+    change_prm()
     # change_W()
     # change_W_std()
     # change_T()
     # trajectory()
-    all_info()
+    # all_info()
     print('prm=', ds.prm)
     endtime = time.time()
     print('time elapsed in seconds:', endtime-starttime)

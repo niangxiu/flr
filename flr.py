@@ -106,8 +106,8 @@ def getLEs(Rs):
     return LEs
 
 
-def nilss(Cinv, d, R, b):
-    # solve the nilss problem
+def nis(Cinv, d, R, b):
+    # solve the nis problem
     nseg, nus = d.shape
     D, E, Einv = np.nan * np.empty([3,nseg,nus,nus])
     RT = np.swapaxes(R,1,2)
@@ -172,8 +172,8 @@ def flr(nseg, W):
         Q[k+1], Rs[k+1], q, bs[k+1], qt, bts[k+1] = renormalize(ws[k,-1], vstars[k,-1], vtstars[k,-1])
 
     LEs = getLEs(Rs)
-    aa = nilss(Cinvs, dwvstars, Rs[:-1], bs[:-1])
-    aat = nilss(Cinvs, dwvtstars, Rs[:-1], bts[:-1])
+    aa = nis(Cinvs, dwvstars, Rs[:-1], bs[:-1])
+    aat = nis(Cinvs, dwvtstars, Rs[:-1], bts[:-1])
     sc = ((dwJus * aa).sum() + dvstarJus.sum()) / (nseg * nstep) # shadowing contribution
     v = vstars + (ws*aa[:,newaxis,newaxis,:]).sum(-1) 
     vt = vtstars + (ws*aat[:,newaxis,newaxis,:]).sum(-1) 
