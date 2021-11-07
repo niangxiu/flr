@@ -16,6 +16,7 @@ from pdb import set_trace
 from ds import *
 import ds
 from flr import flr, primal_raw, preprocess
+from misc import nanarray
 
 plt.rc('axes', labelsize='xx-large',  labelpad=12)
 plt.rc('xtick', labelsize='xx-large')
@@ -27,7 +28,7 @@ plt.rc('font', family='sans-serif')
 # default parameters 
 nseg = 200
 W = 10
-n_repeat = 10
+n_repeat = 4
 ncpu = 2
 
 
@@ -193,8 +194,8 @@ def trajectory():
 
 if __name__ == '__main__': # pragma: no cover
     starttime = time.time()
-    change_prm()
-    # change_W()
+    # change_prm()
+    change_W()
     # change_W_std()
     # change_T()
     # trajectory()
