@@ -150,7 +150,7 @@ def tan2nd(rini, u, psi, w, vt):
     return r
 
 
-def flr(nseg, W):
+def fr(nseg, W):
     # shadowing contribution and first order tangent
     Cinvs = nanarray([nseg, nus, nus])
     dwvstars, dwvtstars, dwJus = nanarray([3, nseg, nus])
