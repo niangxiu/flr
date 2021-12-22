@@ -1,4 +1,4 @@
-# Fast linear response algorithm
+# Fast response algorithm
 
 A highly efficient algorithm for computing the linear response of chaotic systems. This code accompanies the paper: "Fast differentiation of chaos", Angxiu Ni, https://arxiv.org/abs/2009.00595
 
